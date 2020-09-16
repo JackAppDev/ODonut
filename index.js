@@ -3,7 +3,7 @@ const { shuffle, chunk } = require("./helpers")
 
 const token = process.env.SLACK_BOT_TOKEN
 
-const chunkSize = 3
+const chunkSize = 4
 const baseMessage = ":wave: Try having a call with each other at some point this week"
 
 const bot = new App({
@@ -28,12 +28,6 @@ async function run() {
   const users = allUsers.filter((user) => {
     const isInChannel = !!members.find((userId) => user.id === userId)
     return isInChannel && !user.is_bot
-  })
-
-  const userGroups = allNames.map((nameGroup) => {
-    return nameGroup.map((name) => {
-      return users.find(({ real_name }) => real_name === name).id
-    })
   })
 
   const admins = users.filter(({ is_admin, name }) => {
@@ -70,13 +64,18 @@ async function run() {
 
   const today = new Date().toLocaleDateString()
 
-  const promises = userGroups.map((ids) => {
+  const promises = userGroups.map((users) => {
+    const ids = users.map(({ id }) => id)
     return sendMessageToGroup(ids, message)
   })
 
-  await sendMessageToGroup(
-    admins.map(({ id }) => id),
-    `*Groups for ${today}:*\n${names}`
+  console.log(`*Groups for ${today}:*\n${names}`)
+
+  promises.push(
+    sendMessageToGroup(
+      admins.map(({ id }) => id),
+      `*Groups for ${today}:*\n${names}`
+    )
   )
 
   await Promise.all(promises)
@@ -96,23 +95,27 @@ async function getAllUsers() {
 }
 
 async function sendMessageToGroup(ids, message) {
-  var { ok, error, channel } = await bot.client.conversations.open({
-    users: ids.join(","),
-    token,
-  })
-  if (!ok) {
-    console.error(error)
-    return
-  }
+  try {
+    var { ok, error, channel } = await bot.client.conversations.open({
+      users: ids.join(","),
+      token,
+    })
+    if (!ok) {
+      console.error(error)
+      return
+    }
 
-  var { ok, error } = await bot.client.chat.postMessage({
-    token,
-    channel: channel.id,
-    text: message,
-  })
-  if (!ok) {
-    console.error(error)
-    return
+    var { ok, error } = await bot.client.chat.postMessage({
+      token,
+      channel: channel.id,
+      text: message,
+    })
+    if (!ok) {
+      console.error(error)
+      return
+    }
+  } catch (error) {
+    console.log(error)
   }
 }
 
