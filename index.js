@@ -1,5 +1,5 @@
 const { App } = require("@slack/bolt")
-const { shuffle, chunk } = require("./helpers")
+const { shuffle, chunk, random } = require("./helpers")
 
 const token = process.env.SLACK_BOT_TOKEN
 
@@ -46,7 +46,7 @@ async function run() {
 
   const nameGroups = userGroups.map((userGroup) => {
     return userGroup.map(({ id }) => {
-      const user = users.find((user) => id === user.id)
+      const user = findUserById(id, users)
       return user.real_name
     })
   })
@@ -66,7 +66,12 @@ async function run() {
 
   const promises = userGroups.map((users) => {
     const ids = users.map(({ id }) => id)
-    return sendMessageToGroup(ids, message)
+    const leader = findUserById(random(ids), users)
+
+    return sendMessageToGroup(
+      ids,
+      `${message}\n\n${leader.real_name} is the leader this week!`
+    )
   })
 
   console.log(`*Groups for ${today}:*\n${names}`)
@@ -92,6 +97,10 @@ async function getAllUsers() {
   }
 
   return members
+}
+
+function findUserById(id, users) {
+  return users.find(user => user.id === id)
 }
 
 async function sendMessageToGroup(ids, message) {
