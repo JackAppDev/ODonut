@@ -3,7 +3,8 @@ const { shuffle, chunk, random } = require("./helpers")
 
 const token = process.env.SLACK_BOT_TOKEN
 
-const chunkSize = 4
+const idealChunkSize = 4
+const minChunkSize = 3
 const baseMessage = ":wave: Try having a call with each other at some point this week"
 
 const bot = new App({
@@ -42,7 +43,7 @@ async function run() {
     console.error(error)
   }
 
-  const userGroups = chunk(shuffle(users), chunkSize)
+  const userGroups = chunk(shuffle(users), minChunkSize, idealChunkSize, idealChunkSize)
 
   const nameGroups = userGroups.map((userGroup) => {
     return userGroup.map(({ id }) => {
@@ -68,10 +69,7 @@ async function run() {
     const ids = users.map(({ id }) => id)
     const leader = findUserById(random(ids), users)
 
-    return sendMessageToGroup(
-      ids,
-      `${message}\n\n${leader.real_name} is the leader this week!`
-    )
+    return sendMessageToGroup(ids, `${message}\n\n${leader.real_name} is the leader this week!`)
   })
 
   console.log(`*Groups for ${today}:*\n${names}`)
@@ -100,7 +98,7 @@ async function getAllUsers() {
 }
 
 function findUserById(id, users) {
-  return users.find(user => user.id === id)
+  return users.find((user) => user.id === id)
 }
 
 async function sendMessageToGroup(ids, message) {
